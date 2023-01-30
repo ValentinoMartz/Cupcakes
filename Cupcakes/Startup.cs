@@ -21,6 +21,7 @@ namespace Cupcakes
             //services.AddDbContext<CupcakeContext>(options =>
                  // options.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")));
            // services.AddMvc();
+           //
         }
 
         public void Configure(IApplicationBuilder app, CupcakeContext cupcakeContext)
