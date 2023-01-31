@@ -49,11 +49,6 @@
                 <span asp-validation-for="Price"></span>
             </div>
             <div>
-                <div class="form-field">
-                    <label asp-for="CaloricValue"></label>
-                    <input asp-for="CaloricValue" />
-                    <span asp-validation-for="CaloricValue"></span>
-                </div>
                 <input type="hidden" asp-for="ImageMimeType" />
                 <input type="hidden" asp-for="ImageName" />
                 @Html.HiddenFor(c => c.PhotoAvatar)

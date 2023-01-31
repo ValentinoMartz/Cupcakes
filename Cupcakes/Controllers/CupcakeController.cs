@@ -1,19 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using System.IO;
+using Microsoft.AspNetCore.Hosting;
 using Cupcakes.Models;
 using Cupcakes.Repositories;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace Cupcakes.Controllers
 {
     public class CupcakeController : Controller
     {
+        private ICupcakeRepository _repository;
+        private IHostingEnvironment _environment;
+
+        public CupcakeController(ICupcakeRepository repository, IHostingEnvironment environment)
+        {
+            _repository = repository;
+            _environment = environment;
+        }
+
         public IActionResult Index()
         {
             return View(_repository.GetCupcakes());
@@ -28,6 +37,7 @@ namespace Cupcakes.Controllers
             }
             return View(cupcake);
         }
+
         [HttpGet]
         public IActionResult Create()
         {
@@ -64,16 +74,16 @@ namespace Cupcakes.Controllers
         {
             var cupcakeToUpdate = _repository.GetCupcakeById(id);
             bool isUpdated = await TryUpdateModelAsync<Cupcake>(
-                                     cupcakeToUpdate,
-                                     "",
-                                     c => c.BakeryId,
-                                     c => c.CupcakeType,
-                                     c => c.Description,
-                                     c => c.GlutenFree,
-                                     c => c.Price);
-            if (isUpdated == true)
+                                cupcakeToUpdate,
+                                "",
+                                c => c.BakeryId,
+                                c => c.CupcakeType,
+                                c => c.Description,
+                                c => c.GlutenFree,
+                                c => c.Price);
+            if (isUpdated)
             {
-                _repository.SaveChanges();
+                _repository.Savechanges();
                 return RedirectToAction(nameof(Index));
             }
             PopulateBakeriesDropDownList(cupcakeToUpdate.BakeryId);
@@ -104,50 +114,40 @@ namespace Cupcakes.Controllers
             ViewBag.BakeryID = new SelectList(bakeries.AsNoTracking(), "BakeryId", "BakeryName", selectedBakery);
         }
 
-
-        private ICupcakeRepository _repository;
-        private IHostingEnvironment _environment;
-
-        public CupcakeController(ICupcakeRepository repository, IHostingEnvironment environment)
+        public IActionResult GetImage(int id)
         {
-            _repository = repository;
-            _environment = environment;
+            Cupcake requestedCupcake = _repository.GetCupcakeById(id);
+            if (requestedCupcake != null)
+            {
+                string webRootpath = _environment.WebRootPath;
+                string folderPath = "\\images\\";
+                string fullPath = webRootpath + folderPath + requestedCupcake.ImageName;
+                if (System.IO.File.Exists(fullPath))
+                {
+                    FileStream fileOnDisk = new FileStream(fullPath, FileMode.Open);
+                    byte[] fileBytes;
+                    using (BinaryReader br = new BinaryReader(fileOnDisk))
+                    {
+                        fileBytes = br.ReadBytes((int)fileOnDisk.Length);
+                    }
+                    return File(fileBytes, requestedCupcake.ImageMimeType);
+                }
+                else
+                {
+                    if (requestedCupcake.PhotoFile.Length > 0)
+                    {
+                        return File(requestedCupcake.PhotoFile, requestedCupcake.ImageMimeType);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+                }
+            }
+            else
+            {
+                return NotFound();
+            }
         }
-
-        //public IActionResult GetImage(int id)
-        //{
-        //    Cupcake requestedCupcake = _repository.GetCupcakeById(id);
-        //    if (requestedCupcake != null)
-        //    {
-        //        string webRootpath = _environment.WebRootPath;
-        //        string folderPath = "\\images\\";
-        //        string fullPath = webRootpath + folderPath + requestedCupcake.ImageName;
-        //        if (System.IO.File.Exists(fullPath))
-        //        {
-        //            FileStream fileOnDisk = new FileStream(fullPath, FileMode.Open);
-        //            byte[] fileBytes;
-        //            using (BinaryReader br = new BinaryReader(fileOnDisk))
-        //            {
-        //                fileBytes = br.ReadBytes((int)fileOnDisk.Length);
-        //            }
-        //            return File(fileBytes, requestedCupcake.ImageMimeType);
-        //        }
-        //        else
-        //        {
-        //            if (requestedCupcake.PhotoFile.Length > 0)
-        //            {
-        //                return File(requestedCupcake.PhotoFile, requestedCupcake.ImageMimeType);
-        //            }
-        //            else
-        //            {
-        //                return NotFound();
-        //            }
-        //        }
-        //    }
-        //    else
-        //    {
-        //        return NotFound();
-        //    }
-        //}
     }
 }
